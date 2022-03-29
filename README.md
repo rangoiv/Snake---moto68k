@@ -6,6 +6,6 @@ http://www.easy68k.com/
 
 Remember to enable exeptions in emulator options.
 
-Assemble the source (F9), and select execute.
-Go to options/enable exeptions
-Run the game (F9)
+Assemble the source (F9) and select execute.
+Go to options/enable exeptions.
+Run the game (F9).
