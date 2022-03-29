@@ -1,5 +1,5 @@
 # Snake-moto68k
-Game snake made in motorola 68k assembly language
+Game snake made in motorola 68k assembly language.
 
 Download Easy68k emulator:
 http://www.easy68k.com/
