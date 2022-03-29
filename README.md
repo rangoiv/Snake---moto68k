@@ -1,7 +1,11 @@
 # Snake---moto68k
 Game snake made in motorola 68k assembly language
 
-Run in Easy68k emulator:
+Download Easy68k emulator:
 http://www.easy68k.com/
 
-Remember to enable interupts in emulator options.
+Remember to enable exeptions in emulator options.
+
+Assemble the source (F9), and select execute.
+Go to options/enable exeptions
+Run the game (F9)
