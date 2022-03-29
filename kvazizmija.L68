@@ -1,0 +1,312 @@
+00006100 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 27.1.2021. 13:33:57
+
+00000000  =00000014                  1  BOXSIZE     EQU 20
+00000000  =0000000C                  2  FIELDSIZE   EQU 12
+00000000                             3  
+00000000  =00000000                  4  CRNA        EQU $00000000
+00000000  =00FFFFFF                  5  BIJELA      EQU $00FFFFFF
+00000000  =000000FF                  6  CRVENA      EQU $000000FF
+00000000  =00000002                  7  BOXMARGIN   EQU 2
+00000000  =0000000A                  8  TICKT       EQU 10
+00000000                             9  
+00000000  =00005000                 10  POLJE       EQU $5000       ; 2D matrica polja (FIELDSIZE x FIELDSIZE): 0-prazno, (1-4)-smjer zmije, 5-jabuka
+00000000  =00006000                 11  DATA        EQU $6000
+00000000  =00006100                 12  PROGRAM     EQU $6100
+00000000                            13  
+00000000                            14  
+00006000                            15          ORG DATA
+00006000                            16          
+00006000                            17  GLAVA   DS.W    2   ; (X,Y) - koordinata glave na polju (ne na ekranu)
+00006004                            18  ZADNJA  DS.W    2   ; (X,Y) - koordinata kraja na polju (ne na ekranu)
+00006008                            19  SMJER   DS.W    1   ; 1-desno, 2-gore, 3-lijevo, 4-desno (trenutni smjer)
+0000600A                            20  LASTT   DS.L    1   ; vrijeme proslog ticka
+0000600E                            21  STRING  DS.W    4
+00006100                            22          ORG PROGRAM
+00006100                            23      
+00006100                            24  START:  
+00006100  21FC 00006264 0064        25      MOVE.L  #TOCKA, $64 ; IRQ1 -> TOCKA
+00006108                            26      
+00006108                            27      ; Tipkovnica -> IRQ1
+00006108  323C 0103                 28      MOVE.W  #$0103, D1
+0000610C  103C 003E                 29      MOVE.B  #62,D0
+00006110  4E4F                      30      TRAP    #15
+00006112                            31      
+00006112  21FC 00000000 600A        32      MOVE.L  #0, LASTT       ;postavi pocetno vrijeme
+0000611A  21FC 00000001 6008        33      MOVE.L  #1, SMJER       ;pocetni smjer nadesno
+00006122  31FC 0002 6000            34      MOVE.W  #2, GLAVA       ;postavlja pocetnu pozicije glave na (2,2)
+00006128  31FC 0002 6002            35      MOVE.W  #2, GLAVA+2    
+0000612E                            36      
+0000612E                            37      ; ocisti registre
+0000612E                            38      ; i postavi prvu tocku u gornji lijevi kut
+0000612E  323C 0000                 39      MOVE.W  #0, D1
+00006132  343C 0000                 40      MOVE.W  #0, D2
+00006136  3C3C 0000                 41      MOVE.W  #0, D6
+0000613A  3E3C 0000                 42      MOVE.W  #0, D7
+0000613E  103C 0052                 43      MOVE.B  #82,D0
+00006142  4E4F                      44      TRAP    #15
+00006144                            45        
+00006144  323C 0001                 46      MOVE.W  #1, D1
+00006148  343C 0000                 47      MOVE.W  #0, D2
+0000614C  363C 0000                 48      MOVE.W  #0, D3
+00006150  4EB9 000061FC             49      JSR     KVADRAT
+00006156                            50      
+00006156                            51      
+00006156  227C 0000600E             52      MOVEA.L #STRING, A1
+0000615C  337C 0000 0004            53      MOVE    #0, 4(A1)   ; NULL terminated string
+00006162                            54      
+00006162                            55  LOOP:   
+00006162                            56      ; vrijeme od ponoci
+00006162  303C 0008                 57      MOVE.W  #8, D0
+00006166  4E4F                      58      TRAP    #15
+00006168                            59      
+00006168  2401                      60      MOVE.L  D1, D2
+0000616A  94B8 600A                 61      SUB.L   LASTT, D2
+0000616E  B4BC 0000000A             62      CMP.L   #TICKT, D2
+00006174  6500 0008                 63      BCS     TICKOVER
+00006178  4EB9 0000619E             64      JSR     TICK
+0000617E                            65  TICKOVER:
+0000617E  21C1 600A                 66      MOVE.L  D1, LASTT
+00006182                            67      
+00006182                            68      
+00006182                            69      
+00006182                            70      
+00006182                            71      ; zadnja 2 bajta vremena zapisi kao string
+00006182                            72      ; na adresu STRING
+00006182  2F3C 0000600E             73      MOVE.L  #STRING, -(A7)
+00006188  3F01                      74      MOVE.W  D1, -(A7)
+0000618A  4EB9 000062F4             75      JSR BINHEX
+00006190  4EB9 000062C4             76      JSR ISPISIVRIJEME
+00006196                            77  
+00006196  60CA                      78      BRA LOOP
+00006198                            79  
+00006198                            80      
+00006198  103C 0009                 81      MOVE.B  #9,D0
+0000619C  4E4F                      82      TRAP    #15
+0000619E                            83  
+0000619E                            84  
+0000619E                            85  TICK:
+0000619E  48E7 F840                 86      MOVEM.L D0-D4/A1, -(A7)
+000061A2                            87      
+000061A2  3278 6000                 88      MOVEA   GLAVA, A1
+000061A6  3411                      89      MOVE.W  (A1), D2
+000061A8  3629 0002                 90      MOVE.W  2(A1), D3
+000061AC  3838 6008                 91      MOVE.W  SMJER, D4
+000061B0                            92      
+000061B0  5344                      93      SUB     #1, D4
+000061B2  6700 001C                 94      BEQ     IDIDE
+000061B6  5344                      95      SUB     #1, D4
+000061B8  6700 001E                 96      BEQ     IDIGO
+000061BC  5344                      97      SUB     #1, D4
+000061BE  6700 0008                 98      BEQ     IDILI
+000061C2  5344                      99      SUB     #1, D4
+000061C4  6700 001A                100      BEQ     IDIDO
+000061C8                           101  IDILI:
+000061C8  5342                     102      SUB.W   #1, D2
+000061CA  4EF9 000061E8            103      JMP     POMGOT  
+000061D0                           104  IDIDE:
+000061D0  5242                     105      ADD.W   #1, D2
+000061D2  4EF9 000061E8            106      JMP     POMGOT  
+000061D8                           107  IDIGO:
+000061D8  5343                     108      SUB.W   #1, D3
+000061DA  4EF9 000061E8            109      JMP     POMGOT  
+000061E0                           110  IDIDO:
+000061E0  5243                     111      ADD.W   #1, D3
+000061E2  4EF9 000061E8            112      JMP     POMGOT  
+000061E8                           113  POMGOT:
+000061E8  7201                     114      MOVEQ   #1, D1
+000061EA  4EB9 000061FC            115      JSR     KVADRAT
+000061F0                           116      
+000061F0  3242                     117      MOVE.W  D2, A1
+000061F2  3343 0002                118      MOVE.W  D3, 2(A1)
+000061F6  4CDF 021F                119      MOVEM.L (A7)+, D0-D4/A1
+000061FA  4E75                     120      RTS
+000061FC                           121      
+000061FC                           122      
+000061FC                           123  KVADRAT:       
+000061FC                           124      ;D1 - fill color (0=CRNA, 1=BIJELA, 2=JABUKA), 
+000061FC                           125      ;D2 - kvadrat x koordinata na polju
+000061FC                           126      ;D3 - kvadrat y koordinata na polju
+000061FC  48E7 F800                127      MOVEM.L D0-D4, -(A7)
+00006200                           128  
+00006200  4A41                     129      TST.W   D1
+00006202  6700 000E                130      BEQ     POSTAVICRNU
+00006206  5341                     131      SUB.W   #1, D1
+00006208  6700 0010                132      BEQ     POSTAVIBIJELU
+0000620C  4EF9 00006226            133      JMP     POSTAVICRVENU
+00006212                           134  POSTAVICRNU:
+00006212  7200                     135      MOVE.L  #CRNA,  D1
+00006214  4EF9 0000622C            136      JMP     POSTAVIO
+0000621A                           137  POSTAVIBIJELU:
+0000621A  223C 00FFFFFF            138      MOVE.L  #BIJELA,  D1
+00006220  4EF9 0000622C            139      JMP     POSTAVIO
+00006226                           140  POSTAVICRVENU:
+00006226  223C 000000FF            141      MOVE.L  #CRVENA,  D1    
+0000622C                           142  POSTAVIO:
+0000622C                           143      
+0000622C  303C 0050                144      MOVE.W  #80, D0     ;namjesti boju pera
+00006230  4E4F                     145      TRAP    #15
+00006232  303C 0051                146      MOVE.W  #81, D0     ;namjesti boju punjenja
+00006236  4E4F                     147      TRAP    #15
+00006238                           148      
+00006238  3202                     149      MOVE.W  D2, D1      ;pomakni koordinate
+0000623A  3403                     150      MOVE.W  D3, D2
+0000623C  C2FC 0014                151      MULU.W  #BOXSIZE, D1    ;namjesti ih da budu koordinate ekrana, a ne polja
+00006240  C4FC 0014                152      MULU.W  #BOXSIZE, D2
+00006244  3601                     153      MOVE.W  D1, D3          ;namjesti zavrsne koordinate
+00006246  3802                     154      MOVE.W  D2, D4
+00006248  0643 0014                155      ADD.W   #BOXSIZE, D3
+0000624C  0644 0014                156      ADD.W   #BOXSIZE, D4
+00006250  5441                     157      ADDI.W  #BOXMARGIN, D1
+00006252  5442                     158      ADDI.W  #BOXMARGIN, D2
+00006254  5543                     159      SUBI.W  #BOXMARGIN, D3
+00006256  5544                     160      SUBI.W  #BOXMARGIN, D4
+00006258                           161      
+00006258  303C 0057                162      MOVE.W  #87, D0         ;nacrtaj pravokutnik (D1,D2),(D3,D4)
+0000625C  4E4F                     163      TRAP    #15
+0000625E  4CDF 001F                164      MOVEM.L (A7)+, D0-D4
+00006262  4E75                     165      RTS
+00006264                           166  
+00006264                           167  
+00006264                           168  
+00006264                           169  
+00006264                           170  TOCKA:  
+00006264  48E7 F800                171      MOVEM.L D0-D4, -(A7) ; sto bez ovoga?
+00006268  103C 0013                172      MOVE.B #19,D0
+0000626C  223C 25262728            173      MOVE.L #$25262728,D1 ; check for keypress (Left,Up,Right,Down)
+00006272  4E4F                     174      TRAP   #15
+00006274                           175      
+00006274  =00000008                176  TL: EQU 8   ; duljina nove linije koja se crta
+00006274                           177  
+00006274  2606                     178      MOVE.L  D6, D3
+00006276  2807                     179      MOVE.L  D7, D4
+00006278                           180          
+00006278  B2BC FF000000            181  LEFT:   CMP.L   #$FF000000, D1
+0000627E  6600 0008                182      BNE UP
+00006282  5146                     183      SUBQ    #TL, D6
+00006284  6000 002E                184      BRA POMAK
+00006288                           185  
+00006288  B2BC 00FF0000            186  UP: CMP.L   #$00FF0000, D1
+0000628E  6600 0008                187      BNE RIGHT
+00006292  5147                     188      SUBQ    #TL, D7
+00006294  6000 001E                189      BRA POMAK
+00006298                           190  
+00006298  B2BC 0000FF00            191  RIGHT:  CMP.L   #$0000FF00, D1
+0000629E  6600 0008                192      BNE DOWN
+000062A2  5046                     193      ADDQ    #TL, D6
+000062A4  6000 000E                194      BRA POMAK
+000062A8                           195  
+000062A8  B2BC 000000FF            196  DOWN:   CMP.L   #$000000FF, D1
+000062AE  6600 000E                197      BNE TEND
+000062B2  5047                     198      ADDQ    #TL, D7
+000062B4                           199  
+000062B4  103C 0054                200  POMAK:  MOVE.B  #84,D0
+000062B8  3407                     201      MOVE    D7, D2
+000062BA  3206                     202      MOVE    D6, D1
+000062BC  4E4F                     203      TRAP    #15
+000062BE                           204      
+000062BE  4CDF 001F                205  TEND:   MOVEM.L (A7)+, D0-D4 ; sto bez ovoga?
+000062C2                           206  
+000062C2  4E73                     207      RTE
+000062C4                           208  
+000062C4                           209  
+000062C4                           210  ISPISIVRIJEME:
+000062C4                           211      ; postavi mjesto gdje ce se ispisivati vrijeme
+000062C4                           212      ; i ispisi ga
+000062C4  48E7 E040                213      MOVEM.L D0-D2/A1, -(A7)
+000062C8                           214      
+Line 215 ERROR: Invalid addressing mode
+000062C8                           215      MOVE.B  #1, #STRING
+000062C8                           216      
+000062C8  223C 00FFFFFF            217      MOVE.L  #BIJELA, D1
+000062CE  103C 0050                218      MOVE.B  #80,D0    
+000062D2  7200                     219      MOVE.L  #CRNA, D1
+000062D4  103C 0051                220      MOVE.B  #81,D0
+000062D8  4E4F                     221      TRAP    #15
+000062DA                           222      
+000062DA  227C 0000600E            223      MOVE.L  #STRING, A1
+000062E0                           224      
+000062E0  323C 0226                225      MOVE.W  #550, D1
+000062E4  343C 0190                226      MOVE.W  #400, D2
+000062E8  303C 005F                227      MOVE.W  #95, D0
+000062EC  4E4F                     228      TRAP    #15
+000062EE                           229      
+000062EE  4CDF 0207                230      MOVEM.L     (A7)+, D0-D2/A1
+000062F2  4E75                     231      RTS
+000062F4                           232  
+000062F4  48E7 E080                233  BINHEX: MOVEM.L D0-D2/A0, -(A7)
+000062F8  7203                     234      MOVEQ   #3, D1
+000062FA  342F 0014                235      MOVE.W  16+4(A7), D2
+000062FE  206F 0016                236      MOVEA.L 16+6(A7), A0
+00006302  5888                     237      ADDA.L  #4, A0
+00006304                           238      
+00006304  1002                     239  BHLOOP: MOVE.B  D2, D0
+00006306  0200 000F                240      ANDI.B  #$0F, D0
+0000630A  4EB9 00006324            241      JSR HDIGIT
+00006310  1100                     242      MOVE.B  D0, -(A0)
+00006312  E84A                     243      LSR.W   #4, D2
+00006314  51C9 FFEE                244      DBRA    D1, BHLOOP
+00006318                           245      
+00006318  4CDF 0107                246      MOVEM.L (A7)+, D0-D2/A0
+0000631C  2F57 0006                247      MOVE.L  (A7), 6(A7)
+00006320  5C8F                     248      ADDA.L  #6, A7
+00006322  4E75                     249      RTS
+00006324                           250      
+00006324  B03C 000A                251  HDIGIT: CMP.B   #$0A, D0
+00006328  6D02                     252      BLT.S   ADDZ
+0000632A  5E00                     253      ADD.B   #'A'-'0'-$0A, D0
+0000632C  0600 0030                254  ADDZ:   ADD.B   #'0', D0
+00006330  4E75                     255      RTS
+00006332                           256  
+00006332                           257      END START
+
+1 error detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ADDZ                632C
+BHLOOP              6304
+BIJELA              FFFFFF
+BINHEX              62F4
+BOXMARGIN           2
+BOXSIZE             14
+CRNA                0
+CRVENA              FF
+DATA                6000
+DOWN                62A8
+FIELDSIZE           C
+GLAVA               6000
+HDIGIT              6324
+IDIDE               61D0
+IDIDO               61E0
+IDIGO               61D8
+IDILI               61C8
+ISPISIVRIJEME       62C4
+KVADRAT             61FC
+LASTT               600A
+LEFT                6278
+LOOP                6162
+POLJE               5000
+POMAK               62B4
+POMGOT              61E8
+POSTAVIBIJELU       621A
+POSTAVICRNU         6212
+POSTAVICRVENU       6226
+POSTAVIO            622C
+PROGRAM             6100
+RIGHT               6298
+SMJER               6008
+START               6100
+STRING              600E
+TEND                62BE
+TICK                619E
+TICKOVER            617E
+TICKT               A
+TL                  8
+TOCKA               6264
+UP                  6288
+ZADNJA              6004
