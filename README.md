@@ -4,9 +4,8 @@ Game snake made in motorola 68k assembly language.
 
 ## Screenshots
 
-<img src="./Images/screenshot_1.png" width="300"/>
-
-<img src="./Images/screenshot_2.png" width="300"/>
+<img src="./Images/screenshot_1.png" width="400"/>
+<img src="./Images/screenshot_2.png" width="400"/>
 
 ## How to use
 
