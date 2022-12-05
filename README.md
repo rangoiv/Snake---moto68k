@@ -4,7 +4,7 @@ Game snake made in motorola 68k assembly language.
 
 ## Screenshots
 
-![Snake game](./Images/screenshot_1.png)
+<img src="./Images/screenshot_1.png" width="128"/>
 
 ![Snake game](./Images/screenshot_2.png)
 
